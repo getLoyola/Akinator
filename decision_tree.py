@@ -34,89 +34,48 @@ class TreeNode:
         
         self.question = new_question
 
-**Step 2: Implement Feedback in Main Program**
-
-Update `akinator.py` to include feedback and learning functionality.
-
-Update `akinator.py`:
-
-```python
-import json
-from decision_tree import TreeNode
-
-def load_knowledge_base(file_path):
-    try:
-        with open(file_path, 'r') as file:
-            data = json.load(file)
-            return deserialize_tree(data)
-    except FileNotFoundError:
-        return TreeNode("Is your character real?")  # Initial question
-
-def save_knowledge_base(file_path, root):
-    with open(file_path, 'w') as file:
-        json.dump(serialize_tree(root), file, indent=4)
-
-def serialize_tree(node):
-    if node is None:
-        return None
-    return {
-        'question': node.question,
-        'yes_branch': serialize_tree(node.yes_branch),
-        'no_branch': serialize_tree(node.no_branch),
-        'yes_count': node.yes_count,
-        'no_count': node.no_count
-    }
-
-def deserialize_tree(data):
-    if data is None:
-        return None
-    node = TreeNode(data['question'])
-    node.yes_branch = deserialize_tree(data['yes_branch'])
-    node.no_branch = deserialize_tree(data['no_branch'])
-    node.yes_count = data.get('yes_count', 0)
-    node.no_count = data.get('no_count', 0)
-    return node
-
-def ask_question(question):
-    return input(f"{question} (yes/no): ").strip().lower()
-
-def traverse_tree(node):
-    while not node.is_leaf():
-        answer = ask_question(node.question)
-        node.update_counts(answer)
-        if answer == 'yes':
-            node = node.yes_branch
-        elif answer == 'no':
-            node = node.no_branch
-        else:
+    def traverse(self):
+        answer = input(f"{self.question} (yes/no): ").strip().lower()
+        while answer not in ['yes', 'no']:
             print("Please answer with 'yes' or 'no'.")
-    return node
+            answer = input(f"{self.question} (yes/no): ").strip().lower()
 
-def add_new_character(node):
-    character = input("I give up! Who was your character? ").strip()
-    node.learn_from_feedback(character)
+        if answer == 'yes':
+            if self.yes_branch:
+                self.yes_branch.traverse()
+            else:
+                self.learn_from_feedback("character")
+        elif answer == 'no':
+            if self.no_branch:
+                self.no_branch.traverse()
 
-def main():
-    knowledge_base = load_knowledge_base('knowledge_base.json')
+    def balance_tree(self):
+        nodes = self.collect_nodes()
+        balanced_root = self.build_balanced_tree(nodes)
+        self.update_from_balanced_tree(balanced_root)
 
-    print("Welcome to Akinator!")
-    print("Think of a character, and I will try to guess it.")
+    def collect_nodes(self):
+        if self.is_leaf():
+            return [(self.question, self.yes_count, self.no_count)]
+        nodes = []
+        if self.yes_branch:
+            nodes.extend(self.yes_branch.collect_nodes())
+        if self.no_branch:
+            nodes.extend(self.no_branch.collect_nodes())
+        return nodes
 
-    while True:
-        current_node = traverse_tree(knowledge_base)
-        final_answer = ask_question(f"Is your character {current_node.question}?")
-        
-        if final_answer == 'yes':
-            print("I guessed it!")
-        else:
-            print("I couldn't guess it.")
-            add_new_character(current_node)
+    def build_balanced_tree(self, nodes):
+        if not nodes:
+            return None
+        if len(nodes) == 1:
+            return TreeNode(nodes[0][0])
+        mid = len(nodes) // 2
+        root = TreeNode(nodes[mid][0])
+        root.yes_branch = self.build_balanced_tree(nodes[:mid])
+        root.no_branch = self.build_balanced_tree(nodes[mid + 1:])
+        return root
 
-        if input("Do you want to play again? (yes/no): ").strip().lower() != 'yes':
-            break
-
-    save_knowledge_base('knowledge_base.json', knowledge_base)
-    print("Thanks for playing!")
-
-if __name__ == "__main__":
-    main()
+    def update_from_balanced_tree(self, balanced_root):
+        self.question = balanced_root.question
+        self.yes_branch = balanced_root.yes_branch
+        self.no_branch = balanced_root.no_branch
