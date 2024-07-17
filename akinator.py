@@ -1,4 +1,6 @@
 import json
+import tkinter as tk
+from tkinter import simpledialog, messagebox
 from decision_tree import TreeNode
 
 def load_knowledge_base(file_path):
@@ -34,49 +36,82 @@ def deserialize_tree(data):
     node.no_count = data.get('no_count', 0)
     return node
 
-def ask_question(question):
-    answer = input(f"{question} (yes/no): ").strip().lower()
-    while answer not in ['yes', 'no']:
-        print("Please answer with 'yes' or 'no'.")
-        answer = input(f"{question} (yes/no): ").strip().lower()
-    return answer
+class AkinatorApp:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Akinator")
+        self.knowledge_base = load_knowledge_base('knowledge_base.json')
 
-def traverse_tree(node):
-    while not node.is_leaf():
-        answer = ask_question(node.question)
-        node.update_counts(answer)
-        if answer == 'yes':
-            node = node.yes_branch
-        elif answer == 'no':
-            node = node.no_branch
-    return node
+        self.label = tk.Label(root, text="Think of a character, and I will try to guess it.")
+        self.label.pack(pady=20)
 
-def add_new_character(node):
-    character = input("I give up! Who was your character? ").strip()
-    node.learn_from_feedback(character)
+        self.question_label = tk.Label(root, text="", font=("Helvetica", 14))
+        self.question_label.pack(pady=20)
+
+        self.yes_button = tk.Button(root, text="Yes", command=self.yes)
+        self.yes_button.pack(side=tk.LEFT, padx=10, pady=20)
+
+        self.no_button = tk.Button(root, text="No", command=self.no)
+        self.no_button.pack(side=tk.RIGHT, padx=10, pady=20)
+
+        self.restart_button = tk.Button(root, text="Restart", command=self.restart)
+        self.restart_button.pack(pady=20)
+
+        self.current_node = None
+        self.restart()
+
+    def ask_question(self, question):
+        self.question_label.config(text=question)
+
+    def traverse_tree(self):
+        while not self.current_node.is_leaf():
+            return
+        self.final_question()
+
+    def yes(self):
+        self.current_node.update_counts('yes')
+        if self.current_node.yes_branch:
+            self.current_node = self.current_node.yes_branch
+            self.ask_question(self.current_node.question)
+        else:
+            self.add_new_character()
+        
+    def no(self):
+        self.current_node.update_counts('no')
+        if self.current_node.no_branch:
+            self.current_node = self.current_node.no_branch
+            self.ask_question(self.current_node.question)
+        else:
+            self.add_new_character()
+
+    def final_question(self):
+        answer = messagebox.askyesno("Final Question", f"Is your character {self.current_node.question}?")
+        if answer:
+            messagebox.showinfo("Result", "I guessed it!")
+            self.restart()
+        else:
+            self.add_new_character()
+
+    def add_new_character(self):
+        character = simpledialog.askstring("New Character", "I give up! Who was your character?")
+        if character:
+            self.current_node.learn_from_feedback(character)
+        self.restart()
+
+    def restart(self):
+        self.current_node = self.knowledge_base
+        self.ask_question(self.current_node.question)
+
+    def on_closing(self):
+        self.knowledge_base.balance_tree()
+        save_knowledge_base('knowledge_base.json', self.knowledge_base)
+        self.root.destroy()
 
 def main():
-    knowledge_base = load_knowledge_base('knowledge_base.json')
-
-    print("Welcome to Akinator!")
-    print("Think of a character, and I will try to guess it.")
-
-    while True:
-        current_node = traverse_tree(knowledge_base)
-        final_answer = ask_question(f"Is your character {current_node.question}?")
-        
-        if final_answer == 'yes':
-            print("I guessed it!")
-        else:
-            print("I couldn't guess it.")
-            add_new_character(current_node)
-
-        if input("Do you want to play again? (yes/no): ").strip().lower() != 'yes':
-            break
-
-    knowledge_base.balance_tree()
-    save_knowledge_base('knowledge_base.json', knowledge_base)
-    print("Thanks for playing!")
+    root = tk.Tk()
+    app = AkinatorApp(root)
+    root.protocol("WM_DELETE_WINDOW", app.on_closing)
+    root.mainloop()
 
 if __name__ == "__main__":
     main()
