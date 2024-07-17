@@ -51,6 +51,7 @@ class TreeNode:
 
     def balance_tree(self):
         nodes = self.collect_nodes()
+        nodes.sort(key=lambda x: max(x[1], x[2]))  # Sort nodes by the maximum count
         balanced_root = self.build_balanced_tree(nodes)
         self.update_from_balanced_tree(balanced_root)
 
@@ -62,6 +63,7 @@ class TreeNode:
             nodes.extend(self.yes_branch.collect_nodes())
         if self.no_branch:
             nodes.extend(self.no_branch.collect_nodes())
+        nodes.append((self.question, self.yes_count, self.no_count))
         return nodes
 
     def build_balanced_tree(self, nodes):
