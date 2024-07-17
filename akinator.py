@@ -35,51 +35,25 @@ def deserialize_tree(data):
     return node
 
 def ask_question(question):
-    return input(f"{question} (yes/no): ").strip().lower()
-
-def choose_best_question(node):
-    best_score = -1
-    best_node = None
-    nodes = [(node, None)]
-    while nodes:
-        current_node, parent_node = nodes.pop(0)
-        if not current_node.is_leaf():
-            score = current_node.get_score()
-            if score > best_score:
-                best_score = score
-                best_node = (current_node, parent_node)
-            nodes.append((current_node.yes_branch, current_node))
-            nodes.append((current_node.no_branch, current_node))
-    return best_node
+    answer = input(f"{question} (yes/no): ").strip().lower()
+    while answer not in ['yes', 'no']:
+        print("Please answer with 'yes' or 'no'.")
+        answer = input(f"{question} (yes/no): ").strip().lower()
+    return answer
 
 def traverse_tree(node):
     while not node.is_leaf():
-        node.update_counts(ask_question(node.question))
-        best_question, parent_node = choose_best_question(node)
-        if parent_node:
-            if parent_node.yes_branch == best_question:
-                node = parent_node.yes_branch
-            else:
-                node = parent_node.no_branch
-        else:
-            node = best_question
+        answer = ask_question(node.question)
+        node.update_counts(answer)
+        if answer == 'yes':
+            node = node.yes_branch
+        elif answer == 'no':
+            node = node.no_branch
     return node
 
 def add_new_character(node):
     character = input("I give up! Who was your character? ").strip()
-    new_question = input(f"Please provide a question to distinguish {character} from {node.question}: ").strip()
-    correct_answer = input(f"For {character}, what would the answer be? (yes/no): ").strip().lower()
-
-    if correct_answer == 'yes':
-        new_yes_branch = TreeNode(character)
-        new_no_branch = TreeNode(node.question)
-    else:
-        new_yes_branch = TreeNode(node.question)
-        new_no_branch = TreeNode(character)
-    
-    node.question = new_question
-    node.yes_branch = new_yes_branch
-    node.no_branch = new_no_branch
+    node.learn_from_feedback(character)
 
 def main():
     knowledge_base = load_knowledge_base('knowledge_base.json')
@@ -100,6 +74,7 @@ def main():
         if input("Do you want to play again? (yes/no): ").strip().lower() != 'yes':
             break
 
+    knowledge_base.balance_tree()
     save_knowledge_base('knowledge_base.json', knowledge_base)
     print("Thanks for playing!")
 
