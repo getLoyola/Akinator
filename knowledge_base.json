@@ -1,0 +1,81 @@
+{
+    "question": "Is your character real?",
+    "yes_branch": {
+        "question": "Is your character a male?",
+        "yes_branch": {
+            "question": "Is your character an actor?",
+            "yes_branch": {
+                "question": "Is your character Leonardo DiCaprio?",
+                "yes_branch": null,
+                "no_branch": null
+            },
+            "no_branch": {
+                "question": "Is your character Barack Obama?",
+                "yes_branch": null,
+                "no_branch": null
+            }
+        },
+        "no_branch": {
+            "question": "Is your character a female?",
+            "yes_branch": {
+                "question": "Is your character an actress?",
+                "yes_branch": {
+                    "question": "Is your character Emma Watson?",
+                    "yes_branch": null,
+                    "no_branch": null
+                },
+                "no_branch": {
+                    "question": "Is your character a singer?",
+                    "yes_branch": {
+                        "question": "Is your character Taylor Swift?",
+                        "yes_branch": null,
+                        "no_branch": null
+                    },
+                    "no_branch": {
+                        "question": "Is your character Beyonce?",
+                        "yes_branch": null,
+                        "no_branch": null
+                    }
+                }
+            },
+            "no_branch": null
+        }
+    },
+    "no_branch": {
+        "question": "Is your character a cartoon character?",
+        "yes_branch": {
+            "question": "Is your character from Disney?",
+            "yes_branch": {
+                "question": "Is your character Mickey Mouse?",
+                "yes_branch": null,
+                "no_branch": null
+            },
+            "no_branch": {
+                "question": "Is your character from Anime?",
+                "yes_branch": {
+                    "question": "Is your character Naruto?",
+                    "yes_branch": null,
+                    "no_branch": null
+                },
+                "no_branch": {
+                    "question": "Is your character SpongeBob?",
+                    "yes_branch": null,
+                    "no_branch": null
+                }
+            }
+        },
+        "no_branch": {
+            "question": "Is your character from a book?",
+            "yes_branch": {
+                "question": "Is your character Harry Potter?",
+                "yes_branch": null,
+                "no_branch": null
+            },
+            "no_branch": {
+                "question": "Is your character Sherlock Holmes?",
+                "yes_branch": null,
+                "no_branch": null
+            }
+        }
+    }
+}
