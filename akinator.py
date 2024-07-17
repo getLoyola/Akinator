@@ -19,7 +19,9 @@ def serialize_tree(node):
     return {
         'question': node.question,
         'yes_branch': serialize_tree(node.yes_branch),
-        'no_branch': serialize_tree(node.no_branch)
+        'no_branch': serialize_tree(node.no_branch),
+        'yes_count': node.yes_count,
+        'no_count': node.no_count
     }
 
 def deserialize_tree(data):
@@ -28,20 +30,39 @@ def deserialize_tree(data):
     node = TreeNode(data['question'])
     node.yes_branch = deserialize_tree(data['yes_branch'])
     node.no_branch = deserialize_tree(data['no_branch'])
+    node.yes_count = data.get('yes_count', 0)
+    node.no_count = data.get('no_count', 0)
     return node
 
 def ask_question(question):
     return input(f"{question} (yes/no): ").strip().lower()
 
+def choose_best_question(node):
+    best_score = -1
+    best_node = None
+    nodes = [(node, None)]
+    while nodes:
+        current_node, parent_node = nodes.pop(0)
+        if not current_node.is_leaf():
+            score = current_node.get_score()
+            if score > best_score:
+                best_score = score
+                best_node = (current_node, parent_node)
+            nodes.append((current_node.yes_branch, current_node))
+            nodes.append((current_node.no_branch, current_node))
+    return best_node
+
 def traverse_tree(node):
     while not node.is_leaf():
-        answer = ask_question(node.question)
-        if answer == 'yes':
-            node = node.yes_branch
-        elif answer == 'no':
-            node = node.no_branch
+        node.update_counts(ask_question(node.question))
+        best_question, parent_node = choose_best_question(node)
+        if parent_node:
+            if parent_node.yes_branch == best_question:
+                node = parent_node.yes_branch
+            else:
+                node = parent_node.no_branch
         else:
-            print("Please answer with 'yes' or 'no'.")
+            node = best_question
     return node
 
 def add_new_character(node):
