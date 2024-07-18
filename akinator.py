@@ -1,8 +1,8 @@
 import tkinter as tk
 from tkinter import simpledialog, messagebox
 import akinator
-import time
 import json
+import time
 
 class AkinatorApp:
     def __init__(self, root):
@@ -59,11 +59,14 @@ class AkinatorApp:
         self.score_label = tk.Label(self.frame, text="Score: 0", font=("Helvetica", 12), bg="#ffffff")
         self.score_label.pack(pady=10)
 
-        self.time_label = tk.Label(self.frame, text="Time: 0s", font=("Helvetica", 12), bg="#ffffff")
-        self.time_label.pack(pady=10)
+        self.timer_label = tk.Label(self.frame, text="Time: 0s", font=("Helvetica", 12), bg="#ffffff")
+        self.timer_label.pack(pady=10)
 
-        self.leaderboard_button = tk.Button(self.frame, text="Show Leaderboard", command=self.show_leaderboard, font=("Helvetica", 12), bg="#FF5722", fg="#ffffff", activebackground="#E64A19", padx=20, pady=10)
+        self.leaderboard_button = tk.Button(self.frame, text="Show Leaderboard", command=self.show_leaderboard, font=("Helvetica", 12), bg="#FFD700", fg="#000000", activebackground="#FFC107", padx=20, pady=10)
         self.leaderboard_button.pack(pady=10)
+
+        self.reset_leaderboard_button = tk.Button(self.frame, text="Reset Leaderboard", command=self.reset_leaderboard, font=("Helvetica", 12), bg="#DC143C", fg="#ffffff", activebackground="#B22222", padx=20, pady=10)
+        self.reset_leaderboard_button.pack(pady=10)
 
         self.restart_button = tk.Button(self.frame, text="Restart", command=self.restart, font=("Helvetica", 12), bg="#008CBA", fg="#ffffff", activebackground="#007bb5", padx=20, pady=10)
         self.restart_button.pack(pady=10)
@@ -74,14 +77,22 @@ class AkinatorApp:
         self.load_button = tk.Button(self.frame, text="Load Progress", command=self.load_progress, font=("Helvetica", 12), bg="#f44336", fg="#ffffff", activebackground="#e41f1f", padx=20, pady=10)
         self.load_button.pack(pady=10)
 
+        self.language_button = tk.Button(self.frame, text="Change Language", command=self.change_language, font=("Helvetica", 12), bg="#00CED1", fg="#ffffff", activebackground="#20B2AA", padx=20, pady=10)
+        self.language_button.pack(pady=10)
+
         self.sessions = []
         self.history = []
+        self.hint_count = 0
+        self.start_time = 0
+        self.end_time = 0
         self.leaderboard = self.load_leaderboard()
         self.themes = [
             {"bg": "#f0f0f0", "frame": "#ffffff"},
             {"bg": "#333333", "frame": "#555555", "fg": "#ffffff", "activebackground": "#777777"}
         ]
         self.current_theme = 0
+        self.languages = ["en", "fr", "es"]
+        self.current_language = 0
 
         self.aki = akinator.Akinator()
         self.restart()
@@ -96,20 +107,16 @@ class AkinatorApp:
             self.ask_question(self.aki.question)
         except akinator.AkiNoQuestions:
             self.make_guess()
-        except akinator.AkiConnectionFailure:
-            messagebox.showerror("Error", "Connection Failure. Please check your internet connection and try again.")
-        except Exception as e:
-            messagebox.showerror("Error", str(e))
 
     def make_guess(self):
         guess = self.aki.win()
+        self.end_time = time.time()
+        time_taken = self.end_time - self.start_time
         answer = messagebox.askyesno("Final Guess", f"Is your character {guess['name']}?\n\n{guess['description']}")
-        end_time = time.time()
-        elapsed_time = end_time - self.start_time
         if answer:
             score = int(self.score_label.cget("text").split(": ")[1])
             self.score_label.config(text=f"Score: {score + 1}")
-            self.update_leaderboard(score + 1, elapsed_time)
+            self.update_leaderboard(score + 1, time_taken)
             messagebox.showinfo("Result", "I guessed it!")
         else:
             messagebox.showinfo("Result", "You win! I couldn't guess it.")
@@ -117,9 +124,10 @@ class AkinatorApp:
 
     def restart(self):
         self.history.clear()
-        self.aki.start_game()
-        self.ask_question(self.aki.question)
+        self.hint_count = 0
         self.start_time = time.time()
+        self.aki.start_game(language=self.languages[self.current_language])
+        self.ask_question(self.aki.question)
 
     def save_progress(self):
         session_name = simpledialog.askstring("Save Progress", "Enter a name for your session:")
@@ -158,6 +166,7 @@ class AkinatorApp:
         messagebox.showinfo("History", f"Question History:\n\n{history_text}")
 
     def show_hint(self):
+        self.hint_count += 1
         hint = "Think about the unique traits of your character!"
         messagebox.showinfo("Hint", hint)
 
@@ -169,8 +178,16 @@ class AkinatorApp:
         self.title_label.configure(bg=theme.get("frame", "#ffffff"), fg=theme.get("fg", "#000000"))
         self.instruction_label.configure(bg=theme.get("frame", "#ffffff"), fg=theme.get("fg", "#000000"))
         self.question_label.configure(bg=theme.get("frame", "#ffffff"), fg=theme.get("fg", "#000000"))
-        for button in [self.yes_button, self.no_button, self.dont_know_button, self.probably_button, self.probably_not_button, self.history_button, self.hint_button, self.theme_button, self.restart_button, self.save_button, self.load_button, self.leaderboard_button]:
+        for button in [self.yes_button, self.no_button, self.dont_know_button, self.probably_button, self.probably_not_button, self.history_button, self.hint_button, self.theme_button, self.restart_button, self.save_button, self.load_button, self.leaderboard_button, self.reset_leaderboard_button, self.language_button]:
             button.configure(bg=theme.get("frame", "#ffffff"), fg=theme.get("fg", "#000000"), activebackground=theme.get("activebackground", "#dddddd"))
+
+    def change_language(self):
+        self.current_language = (self.current_language + 1) % len(self.languages)
+        self.restart()
+
+    def update_leaderboard(self, score, time_taken):
+        self.leaderboard.append({"score": score, "time": time_taken})
+        self.save_leaderboard()
 
     def load_leaderboard(self):
         try:
@@ -179,16 +196,18 @@ class AkinatorApp:
         except FileNotFoundError:
             return []
 
-    def update_leaderboard(self, score, time_taken):
-        self.leaderboard.append({'score': score, 'time': time_taken})
-        self.leaderboard.sort(key=lambda x: (-x['score'], x['time']))
+    def save_leaderboard(self):
         with open("leaderboard.json", "w") as f:
-            json.dump(self.leaderboard, f)
-        self.show_leaderboard()
+            json.dump(self.leaderboard, f, indent=4)
 
     def show_leaderboard(self):
-        leaderboard_text = "\n".join([f"Score: {entry['score']}, Time: {entry['time']:.2f}s" for entry in self.leaderboard])
-        messagebox.showinfo("Leaderboard", f"Top Scores:\n\n{leaderboard_text}")
+        leaderboard_text = "\n".join([f"Score: {entry['score']}, Time: {entry['time']}s" for entry in self.leaderboard])
+        messagebox.showinfo("Leaderboard", f"Leaderboard:\n\n{leaderboard_text}")
+
+    def reset_leaderboard(self):
+        self.leaderboard = []
+        self.save_leaderboard()
+        messagebox.showinfo("Reset Leaderboard", "Leaderboard has been reset.")
 
 def main():
     root = tk.Tk()
