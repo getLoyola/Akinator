@@ -6,7 +6,7 @@ class AkinatorApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Akinator")
-        self.root.geometry("500x400")
+        self.root.geometry("600x500")
         self.root.configure(bg="#f0f0f0")
 
         self.frame = tk.Frame(root, bg="#ffffff", padx=20, pady=20)
@@ -39,8 +39,17 @@ class AkinatorApp:
         self.probably_not_button = tk.Button(self.button_frame, text="Probably Not", command=lambda: self.answer('pn'), font=("Helvetica", 12), bg="#9c27b0", fg="#ffffff", activebackground="#8c24a0", padx=20, pady=10)
         self.probably_not_button.grid(row=1, column=2, padx=10, pady=10)
 
+        self.history_button = tk.Button(self.frame, text="Show History", command=self.show_history, font=("Helvetica", 12), bg="#008CBA", fg="#ffffff", activebackground="#007bb5", padx=20, pady=10)
+        self.history_button.pack(pady=10)
+
+        self.hint_button = tk.Button(self.frame, text="Hint", command=self.show_hint, font=("Helvetica", 12), bg="#673AB7", fg="#ffffff", activebackground="#5E35B1", padx=20, pady=10)
+        self.hint_button.pack(pady=10)
+
+        self.theme_button = tk.Button(self.frame, text="Change Theme", command=self.change_theme, font=("Helvetica", 12), bg="#607D8B", fg="#ffffff", activebackground="#546E7A", padx=20, pady=10)
+        self.theme_button.pack(pady=10)
+
         self.restart_button = tk.Button(self.frame, text="Restart", command=self.restart, font=("Helvetica", 12), bg="#008CBA", fg="#ffffff", activebackground="#007bb5", padx=20, pady=10)
-        self.restart_button.pack(pady=20)
+        self.restart_button.pack(pady=10)
 
         self.save_button = tk.Button(self.frame, text="Save Progress", command=self.save_progress, font=("Helvetica", 12), bg="#4CAF50", fg="#ffffff", activebackground="#45a049", padx=20, pady=10)
         self.save_button.pack(pady=10)
@@ -49,11 +58,18 @@ class AkinatorApp:
         self.load_button.pack(pady=10)
 
         self.sessions = []
+        self.history = []
+        self.themes = [
+            {"bg": "#f0f0f0", "frame": "#ffffff"},
+            {"bg": "#333333", "frame": "#555555", "fg": "#ffffff", "activebackground": "#777777"}
+        ]
+        self.current_theme = 0
 
         self.aki = akinator.Akinator()
         self.restart()
 
     def ask_question(self, question):
+        self.history.append(question)
         self.question_label.config(text=question)
 
     def answer(self, ans):
@@ -73,6 +89,7 @@ class AkinatorApp:
         self.restart()
 
     def restart(self):
+        self.history.clear()
         self.aki.start_game()
         self.ask_question(self.aki.question)
 
@@ -86,6 +103,7 @@ class AkinatorApp:
                 'step': self.aki.step,
                 'answer': self.aki.answer,
                 'guesses': self.aki.guesses,
+                'history': self.history.copy(),
             }
             self.sessions.append(session_data)
             messagebox.showinfo("Save Progress", f"Progress saved as '{session_name}'.")
@@ -101,10 +119,30 @@ class AkinatorApp:
                     self.aki.step = session['step']
                     self.aki.answer = session['answer']
                     self.aki.guesses = session['guesses']
+                    self.history = session['history']
                     self.ask_question(self.aki.question)
                     messagebox.showinfo("Load Progress", f"Progress loaded from '{session_name}'.")
                     return
             messagebox.showwarning("Load Progress", f"No session found with the name '{session_name}'.")
+
+    def show_history(self):
+        history_text = "\n".join(self.history)
+        messagebox.showinfo("History", f"Question History:\n\n{history_text}")
+
+    def show_hint(self):
+        hint = "Think about the unique traits of your character!"
+        messagebox.showinfo("Hint", hint)
+
+    def change_theme(self):
+        self.current_theme = (self.current_theme + 1) % len(self.themes)
+        theme = self.themes[self.current_theme]
+        self.root.configure(bg=theme.get("bg", "#f0f0f0"))
+        self.frame.configure(bg=theme.get("frame", "#ffffff"))
+        self.title_label.configure(bg=theme.get("frame", "#ffffff"), fg=theme.get("fg", "#000000"))
+        self.instruction_label.configure(bg=theme.get("frame", "#ffffff"), fg=theme.get("fg", "#000000"))
+        self.question_label.configure(bg=theme.get("frame", "#ffffff"), fg=theme.get("fg", "#000000"))
+        for button in [self.yes_button, self.no_button, self.dont_know_button, self.probably_button, self.probably_not_button, self.history_button, self.hint_button, self.theme_button, self.restart_button, self.save_button, self.load_button]:
+            button.configure(bg=theme.get("frame", "#ffffff"), fg=theme.get("fg", "#000000"), activebackground=theme.get("activebackground", "#dddddd"))
 
 def main():
     root = tk.Tk()
