@@ -1,116 +1,76 @@
-import json
 import tkinter as tk
 from tkinter import simpledialog, messagebox
-from decision_tree import TreeNode
-
-def load_knowledge_base(file_path):
-    try:
-        with open(file_path, 'r') as file:
-            data = json.load(file)
-            return deserialize_tree(data)
-    except FileNotFoundError:
-        return TreeNode("Is your character real?")  # Initial question
-
-def save_knowledge_base(file_path, root):
-    with open(file_path, 'w') as file:
-        json.dump(serialize_tree(root), file, indent=4)
-
-def serialize_tree(node):
-    if node is None:
-        return None
-    return {
-        'question': node.question,
-        'yes_branch': serialize_tree(node.yes_branch),
-        'no_branch': serialize_tree(node.no_branch),
-        'yes_count': node.yes_count,
-        'no_count': node.no_count
-    }
-
-def deserialize_tree(data):
-    if data is None:
-        return None
-    node = TreeNode(data['question'])
-    node.yes_branch = deserialize_tree(data['yes_branch'])
-    node.no_branch = deserialize_tree(data['no_branch'])
-    node.yes_count = data.get('yes_count', 0)
-    node.no_count = data.get('no_count', 0)
-    return node
+import akinator
 
 class AkinatorApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Akinator")
-        self.knowledge_base = load_knowledge_base('knowledge_base.json')
+        self.root.geometry("500x400")
+        self.root.configure(bg="#f0f0f0")
 
-        self.label = tk.Label(root, text="Think of a character, and I will try to guess it.")
-        self.label.pack(pady=20)
+        self.frame = tk.Frame(root, bg="#ffffff", padx=20, pady=20)
+        self.frame.pack(expand=True, fill=tk.BOTH, padx=20, pady=20)
 
-        self.question_label = tk.Label(root, text="", font=("Helvetica", 14))
+        self.title_label = tk.Label(self.frame, text="Akinator", font=("Helvetica", 24, "bold"), bg="#ffffff")
+        self.title_label.pack(pady=10)
+
+        self.instruction_label = tk.Label(self.frame, text="Think of a character, and I will try to guess it.", font=("Helvetica", 14), bg="#ffffff")
+        self.instruction_label.pack(pady=10)
+
+        self.question_label = tk.Label(self.frame, text="", font=("Helvetica", 14), bg="#ffffff", wraplength=400)
         self.question_label.pack(pady=20)
 
-        self.yes_button = tk.Button(root, text="Yes", command=self.yes)
-        self.yes_button.pack(side=tk.LEFT, padx=10, pady=20)
+        self.button_frame = tk.Frame(self.frame, bg="#ffffff")
+        self.button_frame.pack(pady=10)
 
-        self.no_button = tk.Button(root, text="No", command=self.no)
-        self.no_button.pack(side=tk.RIGHT, padx=10, pady=20)
+        self.yes_button = tk.Button(self.button_frame, text="Yes", command=lambda: self.answer('y'), font=("Helvetica", 12), bg="#4CAF50", fg="#ffffff", activebackground="#45a049", padx=20, pady=10)
+        self.yes_button.grid(row=0, column=0, padx=10)
 
-        self.restart_button = tk.Button(root, text="Restart", command=self.restart)
+        self.no_button = tk.Button(self.button_frame, text="No", command=lambda: self.answer('n'), font=("Helvetica", 12), bg="#f44336", fg="#ffffff", activebackground="#e41f1f", padx=20, pady=10)
+        self.no_button.grid(row=0, column=1, padx=10)
+
+        self.dont_know_button = tk.Button(self.button_frame, text="Don't Know", command=lambda: self.answer('idk'), font=("Helvetica", 12), bg="#ff9800", fg="#ffffff", activebackground="#ff7800", padx=20, pady=10)
+        self.dont_know_button.grid(row=1, column=0, padx=10, pady=10)
+
+        self.probably_button = tk.Button(self.button_frame, text="Probably", command=lambda: self.answer('p'), font=("Helvetica", 12), bg="#00bcd4", fg="#ffffff", activebackground="#00a4c4", padx=20, pady=10)
+        self.probably_button.grid(row=1, column=1, padx=10, pady=10)
+
+        self.probably_not_button = tk.Button(self.button_frame, text="Probably Not", command=lambda: self.answer('pn'), font=("Helvetica", 12), bg="#9c27b0", fg="#ffffff", activebackground="#8c24a0", padx=20, pady=10)
+        self.probably_not_button.grid(row=1, column=2, padx=10, pady=10)
+
+        self.restart_button = tk.Button(self.frame, text="Restart", command=self.restart, font=("Helvetica", 12), bg="#008CBA", fg="#ffffff", activebackground="#007bb5", padx=20, pady=10)
         self.restart_button.pack(pady=20)
 
-        self.current_node = None
+        self.aki = akinator.Akinator()
         self.restart()
 
     def ask_question(self, question):
         self.question_label.config(text=question)
 
-    def traverse_tree(self):
-        while not self.current_node.is_leaf():
-            return
-        self.final_question()
+    def answer(self, ans):
+        try:
+            self.aki.answer(ans)
+            self.ask_question(self.aki.question)
+        except akinator.AkiNoQuestions:
+            self.make_guess()
 
-    def yes(self):
-        self.current_node.update_counts('yes')
-        if self.current_node.yes_branch:
-            self.current_node = self.current_node.yes_branch
-            self.ask_question(self.current_node.question)
-        else:
-            self.add_new_character()
-        
-    def no(self):
-        self.current_node.update_counts('no')
-        if self.current_node.no_branch:
-            self.current_node = self.current_node.no_branch
-            self.ask_question(self.current_node.question)
-        else:
-            self.add_new_character()
-
-    def final_question(self):
-        answer = messagebox.askyesno("Final Question", f"Is your character {self.current_node.question}?")
+    def make_guess(self):
+        guess = self.aki.win()
+        answer = messagebox.askyesno("Final Guess", f"Is your character {guess['name']}?\n\n{guess['description']}")
         if answer:
             messagebox.showinfo("Result", "I guessed it!")
-            self.restart()
         else:
-            self.add_new_character()
-
-    def add_new_character(self):
-        character = simpledialog.askstring("New Character", "I give up! Who was your character?")
-        if character:
-            self.current_node.learn_from_feedback(character)
+            messagebox.showinfo("Result", "You win! I couldn't guess it.")
         self.restart()
 
     def restart(self):
-        self.current_node = self.knowledge_base
-        self.ask_question(self.current_node.question)
-
-    def on_closing(self):
-        self.knowledge_base.balance_tree()
-        save_knowledge_base('knowledge_base.json', self.knowledge_base)
-        self.root.destroy()
+        self.aki.start_game()
+        self.ask_question(self.aki.question)
 
 def main():
     root = tk.Tk()
     app = AkinatorApp(root)
-    root.protocol("WM_DELETE_WINDOW", app.on_closing)
     root.mainloop()
 
 if __name__ == "__main__":
