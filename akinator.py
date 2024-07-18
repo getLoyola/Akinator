@@ -48,6 +48,15 @@ class AkinatorApp:
         self.theme_button = tk.Button(self.frame, text="Change Theme", command=self.change_theme, font=("Helvetica", 12), bg="#607D8B", fg="#ffffff", activebackground="#546E7A", padx=20, pady=10)
         self.theme_button.pack(pady=10)
 
+        self.difficulty_label = tk.Label(self.frame, text="Difficulty Level:", font=("Helvetica", 12), bg="#ffffff")
+        self.difficulty_label.pack(pady=10)
+
+        self.difficulty_scale = tk.Scale(self.frame, from_=0, to=2, orient=tk.HORIZONTAL, length=200, label="0 - Easy\n1 - Medium\n2 - Hard", font=("Helvetica", 10), bg="#ffffff")
+        self.difficulty_scale.pack()
+
+        self.score_label = tk.Label(self.frame, text="Score: 0", font=("Helvetica", 12), bg="#ffffff")
+        self.score_label.pack(pady=10)
+
         self.restart_button = tk.Button(self.frame, text="Restart", command=self.restart, font=("Helvetica", 12), bg="#008CBA", fg="#ffffff", activebackground="#007bb5", padx=20, pady=10)
         self.restart_button.pack(pady=10)
 
@@ -83,6 +92,8 @@ class AkinatorApp:
         guess = self.aki.win()
         answer = messagebox.askyesno("Final Guess", f"Is your character {guess['name']}?\n\n{guess['description']}")
         if answer:
+            score = int(self.score_label.cget("text").split(": ")[1])
+            self.score_label.config(text=f"Score: {score + 1}")
             messagebox.showinfo("Result", "I guessed it!")
         else:
             messagebox.showinfo("Result", "You win! I couldn't guess it.")
