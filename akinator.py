@@ -42,6 +42,14 @@ class AkinatorApp:
         self.restart_button = tk.Button(self.frame, text="Restart", command=self.restart, font=("Helvetica", 12), bg="#008CBA", fg="#ffffff", activebackground="#007bb5", padx=20, pady=10)
         self.restart_button.pack(pady=20)
 
+        self.save_button = tk.Button(self.frame, text="Save Progress", command=self.save_progress, font=("Helvetica", 12), bg="#4CAF50", fg="#ffffff", activebackground="#45a049", padx=20, pady=10)
+        self.save_button.pack(pady=10)
+
+        self.load_button = tk.Button(self.frame, text="Load Progress", command=self.load_progress, font=("Helvetica", 12), bg="#f44336", fg="#ffffff", activebackground="#e41f1f", padx=20, pady=10)
+        self.load_button.pack(pady=10)
+
+        self.sessions = []
+
         self.aki = akinator.Akinator()
         self.restart()
 
@@ -67,6 +75,36 @@ class AkinatorApp:
     def restart(self):
         self.aki.start_game()
         self.ask_question(self.aki.question)
+
+    def save_progress(self):
+        session_name = simpledialog.askstring("Save Progress", "Enter a name for your session:")
+        if session_name:
+            session_data = {
+                'session_name': session_name,
+                'progress': self.aki.progression,
+                'question': self.aki.question,
+                'step': self.aki.step,
+                'answer': self.aki.answer,
+                'guesses': self.aki.guesses,
+            }
+            self.sessions.append(session_data)
+            messagebox.showinfo("Save Progress", f"Progress saved as '{session_name}'.")
+
+    def load_progress(self):
+        session_names = [session['session_name'] for session in self.sessions]
+        session_name = simpledialog.askstring("Load Progress", "Choose a session to load:", initialvalue=session_names[0] if session_names else '')
+        if session_name:
+            for session in self.sessions:
+                if session['session_name'] == session_name:
+                    self.aki.progression = session['progress']
+                    self.aki.question = session['question']
+                    self.aki.step = session['step']
+                    self.aki.answer = session['answer']
+                    self.aki.guesses = session['guesses']
+                    self.ask_question(self.aki.question)
+                    messagebox.showinfo("Load Progress", f"Progress loaded from '{session_name}'.")
+                    return
+            messagebox.showwarning("Load Progress", f"No session found with the name '{session_name}'.")
 
 def main():
     root = tk.Tk()
