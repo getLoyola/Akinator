@@ -1,6 +1,8 @@
 import tkinter as tk
 from tkinter import simpledialog, messagebox
 import akinator
+import time
+import json
 
 class AkinatorApp:
     def __init__(self, root):
@@ -57,6 +59,12 @@ class AkinatorApp:
         self.score_label = tk.Label(self.frame, text="Score: 0", font=("Helvetica", 12), bg="#ffffff")
         self.score_label.pack(pady=10)
 
+        self.time_label = tk.Label(self.frame, text="Time: 0s", font=("Helvetica", 12), bg="#ffffff")
+        self.time_label.pack(pady=10)
+
+        self.leaderboard_button = tk.Button(self.frame, text="Show Leaderboard", command=self.show_leaderboard, font=("Helvetica", 12), bg="#FF5722", fg="#ffffff", activebackground="#E64A19", padx=20, pady=10)
+        self.leaderboard_button.pack(pady=10)
+
         self.restart_button = tk.Button(self.frame, text="Restart", command=self.restart, font=("Helvetica", 12), bg="#008CBA", fg="#ffffff", activebackground="#007bb5", padx=20, pady=10)
         self.restart_button.pack(pady=10)
 
@@ -68,6 +76,7 @@ class AkinatorApp:
 
         self.sessions = []
         self.history = []
+        self.leaderboard = self.load_leaderboard()
         self.themes = [
             {"bg": "#f0f0f0", "frame": "#ffffff"},
             {"bg": "#333333", "frame": "#555555", "fg": "#ffffff", "activebackground": "#777777"}
@@ -87,13 +96,20 @@ class AkinatorApp:
             self.ask_question(self.aki.question)
         except akinator.AkiNoQuestions:
             self.make_guess()
+        except akinator.AkiConnectionFailure:
+            messagebox.showerror("Error", "Connection Failure. Please check your internet connection and try again.")
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
 
     def make_guess(self):
         guess = self.aki.win()
         answer = messagebox.askyesno("Final Guess", f"Is your character {guess['name']}?\n\n{guess['description']}")
+        end_time = time.time()
+        elapsed_time = end_time - self.start_time
         if answer:
             score = int(self.score_label.cget("text").split(": ")[1])
             self.score_label.config(text=f"Score: {score + 1}")
+            self.update_leaderboard(score + 1, elapsed_time)
             messagebox.showinfo("Result", "I guessed it!")
         else:
             messagebox.showinfo("Result", "You win! I couldn't guess it.")
@@ -103,6 +119,7 @@ class AkinatorApp:
         self.history.clear()
         self.aki.start_game()
         self.ask_question(self.aki.question)
+        self.start_time = time.time()
 
     def save_progress(self):
         session_name = simpledialog.askstring("Save Progress", "Enter a name for your session:")
@@ -152,8 +169,26 @@ class AkinatorApp:
         self.title_label.configure(bg=theme.get("frame", "#ffffff"), fg=theme.get("fg", "#000000"))
         self.instruction_label.configure(bg=theme.get("frame", "#ffffff"), fg=theme.get("fg", "#000000"))
         self.question_label.configure(bg=theme.get("frame", "#ffffff"), fg=theme.get("fg", "#000000"))
-        for button in [self.yes_button, self.no_button, self.dont_know_button, self.probably_button, self.probably_not_button, self.history_button, self.hint_button, self.theme_button, self.restart_button, self.save_button, self.load_button]:
+        for button in [self.yes_button, self.no_button, self.dont_know_button, self.probably_button, self.probably_not_button, self.history_button, self.hint_button, self.theme_button, self.restart_button, self.save_button, self.load_button, self.leaderboard_button]:
             button.configure(bg=theme.get("frame", "#ffffff"), fg=theme.get("fg", "#000000"), activebackground=theme.get("activebackground", "#dddddd"))
+
+    def load_leaderboard(self):
+        try:
+            with open("leaderboard.json", "r") as f:
+                return json.load(f)
+        except FileNotFoundError:
+            return []
+
+    def update_leaderboard(self, score, time_taken):
+        self.leaderboard.append({'score': score, 'time': time_taken})
+        self.leaderboard.sort(key=lambda x: (-x['score'], x['time']))
+        with open("leaderboard.json", "w") as f:
+            json.dump(self.leaderboard, f)
+        self.show_leaderboard()
+
+    def show_leaderboard(self):
+        leaderboard_text = "\n".join([f"Score: {entry['score']}, Time: {entry['time']:.2f}s" for entry in self.leaderboard])
+        messagebox.showinfo("Leaderboard", f"Top Scores:\n\n{leaderboard_text}")
 
 def main():
     root = tk.Tk()
